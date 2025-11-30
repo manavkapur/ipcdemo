@@ -1,38 +1,32 @@
 package com.supremebuilds.ipcdemo
 
-import android.content.*
-import android.os.Bundle
-import android.os.IBinder
-import android.util.Log
-import androidx.activity.ComponentActivity
+
+import android.content.ContentValues
+import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
+import android.os.Bundle
+import android.util.Log
 
+class MainActivity : AppCompatActivity() {
 
-class MainActivity : ComponentActivity() {
-
-    private var service: IMyAidlInterface? = null
-
-    private val connection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-            service = IMyAidlInterface.Stub.asInterface(binder)
-            val msg = service?.getMessage()
-            Log.d("IPC", "Message from remote service: $msg")
-        }
-
-        override fun onServiceDisconnected(name: ComponentName?) {
-            service = null
-        }
-    }
+    private val providerUri = Uri.parse("content://com.supremebuilds.ipcdemo.myprovider/data")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val intent = Intent(this, RemoteService::class.java)
-        bindService(intent, connection, BIND_AUTO_CREATE)
-    }
+        // INSERT data (IPC call)
+        val values = ContentValues().apply {
+            put("text", "Hello from Activity Process!")
+        }
+        contentResolver.insert(providerUri, values)
 
-    override fun onDestroy() {
-        super.onDestroy()
-        unbindService(connection)
+        // QUERY data (IPC call)
+        val cursor = contentResolver.query(providerUri, null, null, null, null)
+
+        cursor?.moveToFirst()
+        val result = cursor?.getString(cursor.getColumnIndexOrThrow("text"))
+        Log.d("IPC-ACTIVITY", "Read from provider: $result")
+
+        cursor?.close()
     }
 }
