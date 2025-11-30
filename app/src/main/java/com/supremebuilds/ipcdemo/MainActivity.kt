@@ -1,27 +1,33 @@
 package com.supremebuilds.ipcdemo
 
+
 import android.content.*
 import android.os.Bundle
 import android.os.IBinder
+import android.os.Parcel
 import android.util.Log
-import androidx.activity.ComponentActivity
 import androidx.appcompat.app.AppCompatActivity
 
-
-class MainActivity : ComponentActivity() {
-
-    private var service: IMyAidlInterface? = null
+class MainActivity : AppCompatActivity() {
 
     private val connection = object : ServiceConnection {
+
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-            service = IMyAidlInterface.Stub.asInterface(binder)
-            val msg = service?.getMessage()
-            Log.d("IPC", "Message from remote service: $msg")
+
+            val data = Parcel.obtain()
+            val reply = Parcel.obtain()
+
+            // Send IPC request to remote binder
+            binder?.transact(1, data, reply, 0)
+
+            val msg = reply.readString()
+            Log.d("IPC-ACTIVITY", "Message from remote binder: $msg")
+
+            data.recycle()
+            reply.recycle()
         }
 
-        override fun onServiceDisconnected(name: ComponentName?) {
-            service = null
-        }
+        override fun onServiceDisconnected(name: ComponentName?) {}
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
