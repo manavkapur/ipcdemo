@@ -1,26 +1,48 @@
 package com.supremebuilds.ipcdemo
 
+
 import android.content.*
-import android.os.Bundle
-import android.os.IBinder
+import android.os.*
 import android.util.Log
-import androidx.activity.ComponentActivity
 import androidx.appcompat.app.AppCompatActivity
 
+class MainActivity : AppCompatActivity() {
 
-class MainActivity : ComponentActivity() {
+    private var serviceMessenger: Messenger? = null
 
-    private var service: IMyAidlInterface? = null
-
-    private val connection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-            service = IMyAidlInterface.Stub.asInterface(binder)
-            val msg = service?.getMessage()
-            Log.d("IPC", "Message from remote service: $msg")
+    // Handler to receive reply from service
+    private val replyHandler = object : Handler(Looper.getMainLooper()) {
+        override fun handleMessage(msg: Message) {
+            if (msg.what == 2) {
+                val reply = msg.data?.getString("reply")
+                Log.d("IPC", "Reply from service: $reply")
+            }
         }
 
+    }
+
+    private val replyMessenger = Messenger(replyHandler)
+
+    // Service connection
+    private val connection = object : ServiceConnection {
+
+        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+            serviceMessenger = Messenger(binder)
+
+            val msg = Message.obtain(null, 1)
+
+            val bundle = Bundle()
+            bundle.putString("data", "Hello from Activity!")
+            msg.data = bundle
+
+            msg.replyTo = replyMessenger
+
+            serviceMessenger?.send(msg)
+        }
+
+
         override fun onServiceDisconnected(name: ComponentName?) {
-            service = null
+            serviceMessenger = null
         }
     }
 
